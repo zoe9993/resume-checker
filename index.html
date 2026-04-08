@@ -20,9 +20,9 @@
   --text3: #565d70;
   --user-bubble: #2e4080;
   --ai-bubble: #2d3039;
-  --shadow: 0 2px 12px rgba(0,0,0,0.25);
   --success: #4caf7d;
   --danger: #e05c5c;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,7 +37,7 @@ body {
   font-size: 14px;
 }
 
-/* SIDEBAR */
+/* ── SIDEBAR ── */
 .sidebar {
   width: 248px;
   min-width: 248px;
@@ -46,33 +46,30 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  transition: transform 0.25s ease;
+  z-index: 100;
 }
 
 .sidebar-header {
-  padding: 16px;
+  padding: 14px 14px 10px;
   border-bottom: 1px solid var(--border);
 }
 
 .app-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  letter-spacing: 0.02em;
+  gap: 7px;
 }
 
-.app-dot {
-  width: 7px; height: 7px;
-  background: var(--accent);
-  border-radius: 50%;
-}
+.app-dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; }
 
 .new-btn {
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px 10px;
   background: var(--accent-light);
   color: var(--accent);
   border: 1px solid rgba(91,138,240,0.25);
@@ -84,16 +81,16 @@ body {
   transition: all 0.15s;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   justify-content: center;
 }
 
-.new-btn:hover { background: rgba(91,138,240,0.2); border-color: rgba(91,138,240,0.4); }
+.new-btn:hover { background: rgba(91,138,240,0.2); }
 
 .projects-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 6px;
 }
 
 .projects-list::-webkit-scrollbar { width: 3px; }
@@ -105,11 +102,11 @@ body {
   color: var(--text3);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 8px 8px 4px;
+  padding: 8px 8px 3px;
 }
 
 .project-item {
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.12s;
@@ -123,7 +120,7 @@ body {
 .project-item:hover { background: var(--surface2); }
 .project-item.active { background: var(--surface3); }
 
-.project-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.project-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; }
 .project-emoji { font-size: 15px; flex-shrink: 0; }
 .project-text { min-width: 0; }
 
@@ -165,71 +162,106 @@ body {
 .icon-btn.danger:hover { color: var(--danger); }
 
 .sidebar-footer {
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-top: 1px solid var(--border);
   font-family: 'DM Mono', monospace;
   font-size: 10px;
   color: var(--text3);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .status-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
 
-/* MAIN */
+/* ── MOBILE OVERLAY ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+
+/* ── MAIN ── */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg);
+  min-width: 0;
 }
 
-/* TOPBAR */
+/* ── TOPBAR ── */
 .topbar {
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--surface);
   flex-shrink: 0;
+  gap: 10px;
 }
 
-.current-project { display: flex; align-items: center; gap: 10px; }
-.current-emoji { font-size: 18px; }
-.current-name { font-size: 14px; font-weight: 600; color: var(--text); }
-.topbar-actions { display: flex; gap: 6px; }
+.topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.menu-btn:hover { background: var(--surface2); }
+
+.current-emoji { font-size: 17px; flex-shrink: 0; }
+
+.current-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions { display: flex; gap: 5px; flex-shrink: 0; }
 
 .topbar-btn {
   background: none;
   border: 1px solid var(--border2);
   color: var(--text2);
   font-family: 'Noto Sans JP', sans-serif;
-  font-size: 12px;
-  padding: 5px 11px;
+  font-size: 11px;
+  padding: 4px 10px;
   border-radius: 5px;
   cursor: pointer;
   transition: all 0.12s;
+  white-space: nowrap;
 }
 
-.topbar-btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+.topbar-btn:hover { color: var(--text); background: var(--surface2); }
 .topbar-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
 .topbar-btn.primary:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-/* CHAT */
+/* ── CHAT ── */
 .chat-area {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
-.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar { width: 3px; }
 .chat-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
 .empty-state {
@@ -238,20 +270,20 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
-  padding: 40px;
+  padding: 40px 20px;
 }
 
-.empty-icon { font-size: 36px; opacity: 0.5; }
-.empty-title { font-size: 15px; font-weight: 600; color: var(--text2); }
-.empty-desc { font-size: 12px; line-height: 1.6; color: var(--text3); max-width: 260px; }
+.empty-icon { font-size: 32px; opacity: 0.4; }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text2); }
+.empty-desc { font-size: 12px; line-height: 1.6; color: var(--text3); max-width: 240px; }
 
 .message {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   animation: msgIn 0.2s ease;
-  max-width: 780px;
+  max-width: 720px;
   width: 100%;
   margin: 0 auto;
 }
@@ -264,24 +296,21 @@ body {
 .message.user { flex-direction: row-reverse; }
 
 .avatar {
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
   flex-shrink: 0;
-  font-weight: 700;
 }
 
 .message.user .avatar { background: var(--accent); color: white; }
-.message.ai .avatar { background: var(--surface3); color: var(--text2); border: 1px solid var(--border); font-size: 13px; }
+.message.ai .avatar { background: var(--surface3); color: var(--text2); border: 1px solid var(--border); font-size: 12px; }
 
 .bubble {
-  max-width: 72%;
-  padding: 10px 14px;
+  max-width: 75%;
+  padding: 9px 13px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.75;
   white-space: pre-wrap;
   word-break: break-word;
@@ -301,7 +330,7 @@ body {
   border-radius: 3px 10px 10px 10px;
 }
 
-.bubble-actions { display: flex; gap: 4px; margin-top: 5px; opacity: 0; transition: opacity 0.12s; }
+.bubble-actions { display: flex; gap: 4px; margin-top: 4px; opacity: 0; transition: opacity 0.12s; }
 .message:hover .bubble-actions { opacity: 1; }
 
 .bubble-action-btn {
@@ -318,7 +347,7 @@ body {
 
 .bubble-action-btn:hover { border-color: var(--border2); color: var(--text2); background: var(--surface2); }
 
-.thinking { display: flex; gap: 4px; padding: 2px 0; align-items: center; }
+.thinking { display: flex; gap: 4px; align-items: center; }
 .thinking span {
   width: 5px; height: 5px;
   background: var(--text3);
@@ -333,15 +362,15 @@ body {
   40% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* INPUT */
+/* ── INPUT ── */
 .input-area {
-  padding: 12px 20px 16px;
+  padding: 10px 16px 14px;
   border-top: 1px solid var(--border);
   background: var(--surface);
   flex-shrink: 0;
 }
 
-.input-inner { max-width: 780px; margin: 0 auto; }
+.input-inner { max-width: 720px; margin: 0 auto; }
 
 .input-wrap {
   display: flex;
@@ -350,7 +379,7 @@ body {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: 8px;
-  padding: 9px 12px;
+  padding: 8px 10px;
   transition: border-color 0.15s;
 }
 
@@ -362,12 +391,12 @@ body {
   border: none;
   color: var(--text);
   font-family: 'Noto Sans JP', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
   resize: none;
   outline: none;
-  max-height: 130px;
-  min-height: 22px;
+  max-height: 120px;
+  min-height: 20px;
 }
 
 .chat-input::placeholder { color: var(--text3); }
@@ -376,23 +405,21 @@ body {
   background: var(--accent);
   border: none;
   color: white;
-  width: 30px; height: 30px;
+  width: 28px; height: 28px;
   border-radius: 6px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: all 0.15s;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .send-btn:hover { background: #4a79e0; }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-.input-hint { text-align: center; font-size: 10px; color: var(--text3); margin-top: 6px; font-family: 'DM Mono', monospace; }
+.input-hint { text-align: center; font-size: 10px; color: var(--text3); margin-top: 5px; font-family: 'DM Mono', monospace; }
 
-/* NO PROJECT */
+/* ── NO PROJECT ── */
 .no-project {
   flex: 1;
   display: flex;
@@ -400,38 +427,63 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 40px;
+  padding: 40px 20px;
   text-align: center;
 }
 
-.no-project-icon { font-size: 44px; opacity: 0.4; }
-.no-project h2 { font-size: 17px; font-weight: 600; color: var(--text); }
-.no-project p { font-size: 13px; line-height: 1.7; color: var(--text2); max-width: 280px; }
+.no-project-icon { font-size: 40px; opacity: 0.3; }
+.no-project h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+.no-project p { font-size: 12px; line-height: 1.7; color: var(--text2); max-width: 260px; }
 
-/* MODAL */
+/* ── LOADING ── */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loading-spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+/* ── MODAL ── */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.55);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(3px);
+  padding: 16px;
 }
 
 .modal {
   background: var(--surface);
   border: 1px solid var(--border2);
   border-radius: 10px;
-  padding: 22px;
-  width: 460px;
-  max-width: 90vw;
+  padding: 20px;
+  width: 100%;
+  max-width: 440px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.modal-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.modal-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
 
-.form-group { margin-bottom: 13px; }
+.form-group { margin-bottom: 12px; }
 
-.form-label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; letter-spacing: 0.04em; }
+.form-label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 4px; }
 
 .form-input, .form-textarea {
   width: 100%;
@@ -440,32 +492,32 @@ body {
   color: var(--text);
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 13px;
-  padding: 8px 11px;
+  padding: 7px 10px;
   border-radius: 6px;
   outline: none;
   transition: border-color 0.15s;
 }
 
 .form-input:focus, .form-textarea:focus { border-color: var(--accent); }
-.form-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
-.form-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.form-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
 
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
-.btn { padding: 8px 16px; border-radius: 6px; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.12s; border: none; }
+.btn { padding: 7px 14px; border-radius: 6px; font-family: 'Noto Sans JP', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s; border: none; }
 .btn-primary { background: var(--accent); color: white; }
 .btn-primary:hover { background: #4a79e0; }
 .btn-ghost { background: none; border: 1px solid var(--border2); color: var(--text2); }
-.btn-ghost:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+.btn-ghost:hover { color: var(--text); background: var(--surface2); }
 
-.emoji-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
+.emoji-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 4px; }
 
 .emoji-opt {
-  width: 30px; height: 30px;
+  width: 28px; height: 28px;
   border-radius: 5px;
   border: 1px solid var(--border);
   background: var(--surface2);
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.12s;
@@ -473,11 +525,39 @@ body {
 
 .emoji-opt:hover { border-color: var(--accent); background: var(--accent-light); }
 .emoji-opt.selected { border-color: var(--accent); background: var(--accent-light); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .menu-btn { display: flex; }
+  .bubble { max-width: 85%; }
+  .input-hint { display: none; }
+
+  .topbar-btn span { display: none; }
+}
 </style>
 </head>
 <body>
 
-<div class="sidebar">
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">読み込み中...</div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="app-title">
       <div class="app-dot"></div>
@@ -492,14 +572,16 @@ body {
   </div>
 </div>
 
+<!-- Main -->
 <div class="main" id="mainArea">
   <div class="no-project">
     <div class="no-project-icon">✦</div>
     <h2>Zoe's AI Assistant</h2>
-    <p>左のサイドバーから「汎用チャット」を選ぶか、新しいプロジェクトを作成してください。</p>
+    <p>左のサイドバーからプロジェクトを選んでください。</p>
   </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" id="modalOverlay" style="display:none" onclick="closeModalOutside(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title" id="modalTitle">新しいプロジェクト</div>
@@ -517,9 +599,7 @@ body {
     </div>
     <div class="form-group">
       <label class="form-label">システムPrompt *</label>
-      <textarea class="form-textarea" id="projectPrompt" placeholder="AIへの指示を書いてください。
-
-例：あなたは日本の人材紹介会社の採用コンサルタントです。候補者と企業へのメールを丁寧かつ自然なビジネス日本語で作成してください。"></textarea>
+      <textarea class="form-textarea" id="projectPrompt" placeholder="AIへの指示を書いてください。"></textarea>
       <div class="form-hint">具体的に書くほど精度が上がります。</div>
     </div>
     <div class="modal-actions">
@@ -533,16 +613,51 @@ body {
 const GENERAL_ID = '__general__';
 const EMOJIS = ['💬','📧','📄','📋','🔍','✍️','📊','🤝','💼','🎯','⚡','🌐','📝','🗂️','💡','🧠','🗣️','📨'];
 
-let projects = JSON.parse(localStorage.getItem('aiProjects_v2') || '[]');
+let projects = [];
 let currentProjectId = null;
 let editingProjectId = null;
 let selectedEmoji = '💬';
 let isLoading = false;
 
-renderSidebar();
+// ── Init ──────────────────────────────────────────────────────────────
+async function init() {
+  await loadProjects();
+  document.getElementById('loadingOverlay').style.display = 'none';
+  renderSidebar();
+}
 
-function saveProjects() { localStorage.setItem('aiProjects_v2', JSON.stringify(projects)); }
+// ── Projects API ──────────────────────────────────────────────────────
+async function loadProjects() {
+  try {
+    const res = await fetch('/api/projects');
+    if (res.ok) projects = await res.json();
+  } catch(e) {
+    projects = [];
+  }
+}
 
+async function createProject(data) {
+  const res = await fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return res.ok ? await res.json() : null;
+}
+
+async function updateProject(id, data) {
+  await fetch(`/api/projects?id=${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+}
+
+async function deleteProjectAPI(id) {
+  await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────
 function renderSidebar() {
   const list = document.getElementById('projectsList');
   let html = `<div class="section-label">チャット</div>
@@ -557,36 +672,53 @@ function renderSidebar() {
     </div>`;
 
   if (projects.length > 0) {
-    html += `<div class="section-label" style="margin-top:8px">プロジェクト</div>`;
+    html += `<div class="section-label" style="margin-top:6px">プロジェクト</div>`;
     html += projects.map(p => `
       <div class="project-item ${currentProjectId===p.id?'active':''}" onclick="selectProject('${p.id}')">
         <div class="project-info">
-          <div class="project-emoji">${p.emoji}</div>
+          <div class="project-emoji">${p.emoji||'💬'}</div>
           <div class="project-text">
             <div class="project-name">${p.name}</div>
-            ${p.desc?`<div class="project-desc">${p.desc}</div>`:''}
+            ${p.description?`<div class="project-desc">${p.description}</div>`:''}
           </div>
         </div>
         <div class="project-actions">
           <button class="icon-btn" onclick="event.stopPropagation();openEditModal('${p.id}')">✏️</button>
-          <button class="icon-btn danger" onclick="event.stopPropagation();deleteProject('${p.id}')">🗑</button>
+          <button class="icon-btn danger" onclick="event.stopPropagation();confirmDelete('${p.id}')">🗑</button>
         </div>
       </div>`).join('');
   }
   list.innerHTML = html;
 }
 
-function selectProject(id) { currentProjectId = id; renderSidebar(); renderChatArea(); }
-
-function deleteProject(id) {
-  if (!confirm('削除しますか？')) return;
-  projects = projects.filter(p => p.id !== id);
-  localStorage.removeItem(`chat_${id}`);
-  if (currentProjectId === id) currentProjectId = null;
-  saveProjects(); renderSidebar();
-  currentProjectId ? renderChatArea() : renderNoProject();
+function selectProject(id) {
+  currentProjectId = id;
+  renderSidebar();
+  renderChatArea();
+  closeSidebar();
 }
 
+async function confirmDelete(id) {
+  if (!confirm('このプロジェクトを削除しますか？')) return;
+  await deleteProjectAPI(id);
+  projects = projects.filter(p => p.id !== id);
+  localStorage.removeItem(`chat_${id}`);
+  if (currentProjectId === id) { currentProjectId = null; renderNoProject(); }
+  renderSidebar();
+}
+
+// ── Mobile ───────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────
 function initEmojiPicker() {
   document.getElementById('emojiPicker').innerHTML = EMOJIS.map(e =>
     `<div class="emoji-opt ${e===selectedEmoji?'selected':''}" onclick="selectEmoji('${e}')">${e}</div>`).join('');
@@ -612,11 +744,11 @@ function openNewProjectModal() {
 function openEditModal(id) {
   const p = projects.find(x => x.id === id);
   if (!p) return;
-  editingProjectId = id; selectedEmoji = p.emoji;
+  editingProjectId = id; selectedEmoji = p.emoji || '💬';
   document.getElementById('modalTitle').textContent = 'プロジェクトを編集';
   document.getElementById('modalSaveBtn').textContent = '保存';
   document.getElementById('projectName').value = p.name;
-  document.getElementById('projectDesc').value = p.desc || '';
+  document.getElementById('projectDesc').value = p.description || '';
   document.getElementById('projectPrompt').value = p.prompt;
   initEmojiPicker();
   document.getElementById('modalOverlay').style.display = 'flex';
@@ -625,24 +757,35 @@ function openEditModal(id) {
 function hideModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 function closeModalOutside(e) { if (e.target === document.getElementById('modalOverlay')) hideModal(); }
 
-function saveProject() {
+async function saveProject() {
   const name = document.getElementById('projectName').value.trim();
-  const desc = document.getElementById('projectDesc').value.trim();
+  const description = document.getElementById('projectDesc').value.trim();
   const prompt = document.getElementById('projectPrompt').value.trim();
   if (!name) { alert('プロジェクト名を入力してください'); return; }
   if (!prompt) { alert('Promptを入力してください'); return; }
 
-  if (editingProjectId) {
-    const idx = projects.findIndex(p => p.id === editingProjectId);
-    if (idx !== -1) projects[idx] = { ...projects[idx], name, desc, prompt, emoji: selectedEmoji };
-  } else {
-    const newP = { id: Date.now().toString(), name, desc, prompt, emoji: selectedEmoji };
-    projects.push(newP);
-    currentProjectId = newP.id;
+  const saveBtn = document.getElementById('modalSaveBtn');
+  saveBtn.textContent = '保存中...'; saveBtn.disabled = true;
+
+  try {
+    if (editingProjectId) {
+      await updateProject(editingProjectId, { name, description, prompt, emoji: selectedEmoji });
+      const idx = projects.findIndex(p => p.id === editingProjectId);
+      if (idx !== -1) projects[idx] = { ...projects[idx], name, description, prompt, emoji: selectedEmoji };
+    } else {
+      const newP = await createProject({ name, description, prompt, emoji: selectedEmoji });
+      if (newP) { projects.push(newP); currentProjectId = newP.id; }
+    }
+    renderSidebar();
+    renderChatArea();
+    hideModal();
+  } finally {
+    saveBtn.textContent = editingProjectId ? '保存' : '作成';
+    saveBtn.disabled = false;
   }
-  saveProjects(); renderSidebar(); renderChatArea(); hideModal();
 }
 
+// ── Chat ──────────────────────────────────────────────────────────────
 function getMessages() { return JSON.parse(localStorage.getItem(`chat_${currentProjectId}`) || '[]'); }
 function saveMessages(msgs) { localStorage.setItem(`chat_${currentProjectId}`, JSON.stringify(msgs)); }
 
@@ -651,32 +794,36 @@ function renderNoProject() {
     <div class="no-project">
       <div class="no-project-icon">✦</div>
       <h2>Zoe's AI Assistant</h2>
-      <p>左のサイドバーから「汎用チャット」を選ぶか、新しいプロジェクトを作成してください。</p>
+      <p>左のサイドバーからプロジェクトを選んでください。</p>
     </div>`;
 }
 
 function renderChatArea() {
   if (!currentProjectId) { renderNoProject(); return; }
   const isGeneral = currentProjectId === GENERAL_ID;
-  const p = isGeneral ? { name:'汎用チャット', emoji:'💬', prompt:'', id:GENERAL_ID } : projects.find(x => x.id === currentProjectId);
+  const p = isGeneral
+    ? { name:'汎用チャット', emoji:'💬', prompt:'', id:GENERAL_ID }
+    : projects.find(x => x.id === currentProjectId);
   if (!p) { renderNoProject(); return; }
 
   document.getElementById('mainArea').innerHTML = `
     <div class="topbar">
-      <div class="current-project">
-        <div class="current-emoji">${p.emoji}</div>
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="current-emoji">${p.emoji||'💬'}</div>
         <div class="current-name">${p.name}</div>
       </div>
       <div class="topbar-actions">
-        ${!isGeneral ? `<button class="topbar-btn primary" onclick="openEditModal('${p.id}')">⚙ Prompt編集</button>` : ''}
-        <button class="topbar-btn danger" onclick="clearChat()">🗑 クリア</button>
+        ${!isGeneral ? `<button class="topbar-btn primary" onclick="openEditModal('${p.id}')">⚙ <span>Prompt</span></button>` : ''}
+        <button class="topbar-btn danger" onclick="clearChat()">🗑 <span>クリア</span></button>
       </div>
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-area">
       <div class="input-inner">
         <div class="input-wrap">
-          <textarea class="chat-input" id="chatInput" placeholder="メッセージを入力... (Shift+Enter で送信)"
+          <textarea class="chat-input" id="chatInput"
+            placeholder="メッセージを入力..."
             rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
           <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
         </div>
@@ -694,11 +841,11 @@ function renderMessages() {
   const msgs = getMessages();
   if (!msgs.length) {
     const isGeneral = currentProjectId === GENERAL_ID;
-    const p = isGeneral ? { emoji:'💬', name:'汎用チャット', desc:'何でも聞いてください' } : projects.find(x => x.id === currentProjectId);
+    const p = isGeneral ? { emoji:'💬', name:'汎用チャット', description:'何でも聞いてください' } : projects.find(x => x.id === currentProjectId);
     chatArea.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">${p?.emoji}</div>
-      <div class="empty-title">${p?.name}</div>
-      <div class="empty-desc">${p?.desc || 'メッセージを入力して会話を始めましょう'}</div>
+      <div class="empty-icon">${p?.emoji||'💬'}</div>
+      <div class="empty-title">${p?.name||''}</div>
+      <div class="empty-desc">${p?.description||'メッセージを入力して会話を始めましょう'}</div>
     </div>`;
     return;
   }
@@ -716,12 +863,32 @@ function renderMessages() {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function clearChat() { if (!confirm('クリアしますか？')) return; localStorage.removeItem(`chat_${currentProjectId}`); renderMessages(); }
+function escapeHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function clearChat() {
+  if (!confirm('会話履歴をクリアしますか？')) return;
+  localStorage.removeItem(`chat_${currentProjectId}`);
+  renderMessages();
+}
+
 function copyMsg(i) { navigator.clipboard.writeText(getMessages()[i]?.content || ''); }
-async function regenMsg(i) { const msgs = getMessages().slice(0,i); saveMessages(msgs); renderMessages(); await callAPI(msgs); }
-function handleKey(e) { if (e.key==='Enter' && e.shiftKey) { e.preventDefault(); sendMessage(); } }
-function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
+
+async function regenMsg(i) {
+  const msgs = getMessages().slice(0, i);
+  saveMessages(msgs); renderMessages();
+  await callAPI(msgs);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
 
 async function sendMessage() {
   const input = document.getElementById('chatInput');
@@ -740,6 +907,7 @@ async function callAPI(msgs) {
   isLoading = true;
   const sendBtn = document.getElementById('sendBtn');
   if (sendBtn) sendBtn.disabled = true;
+
   const chatArea = document.getElementById('chatArea');
   if (chatArea) {
     const t = document.createElement('div');
@@ -748,14 +916,17 @@ async function callAPI(msgs) {
     chatArea.appendChild(t);
     chatArea.scrollTop = chatArea.scrollHeight;
   }
+
   try {
     const isGeneral = currentProjectId === GENERAL_ID;
     const p = isGeneral ? null : projects.find(x => x.id === currentProjectId);
-    const systemPrompt = p?.prompt || 'あなたは優秀なAIアシスタントです。丁寧に回答してください。';
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ systemPrompt, messages: msgs.map(m => ({ role: m.role==='ai'?'assistant':'user', content: m.content })) })
+      body: JSON.stringify({
+        systemPrompt: p?.prompt || '',
+        messages: msgs.map(m => ({ role: m.role==='ai'?'assistant':'user', content: m.content }))
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'エラーが発生しました');
@@ -774,6 +945,8 @@ async function callAPI(msgs) {
     document.getElementById('chatInput')?.focus();
   }
 }
+
+init();
 </script>
 </body>
 </html>
