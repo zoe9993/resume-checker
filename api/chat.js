@@ -12,9 +12,13 @@ export default async function handler(req) {
   try {
     const { systemPrompt, messages } = await req.json();
 
-    // 今日の日付を自動生成
+    // 日本時間で今日の日付を取得
     const today = new Date().toLocaleDateString('ja-JP', {
-      year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
     });
 
     const BASE_SYSTEM = `今日の日付は${today}です。年数計算・在籍期間・経験年数は必ず今日の日付を基準に正確に計算してください。未来の日付と判断しないこと。
