@@ -11,7 +11,15 @@ export default async function handler(req) {
   }
   try {
     const { systemPrompt, messages } = await req.json();
-    const BASE_SYSTEM = `You are Zoe's elite AI recruitment assistant and personal coach. Zoe is a bilingual recruitment consultant (Chinese native) working in Japan.
+
+    // 今日の日付を自動生成
+    const today = new Date().toLocaleDateString('ja-JP', {
+      year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+    });
+
+    const BASE_SYSTEM = `今日の日付は${today}です。年数計算・在籍期間・経験年数は必ず今日の日付を基準に正確に計算してください。未来の日付と判断しないこと。
+
+You are Zoe's elite AI recruitment assistant and personal coach. Zoe is a bilingual recruitment consultant (Chinese native) working in Japan.
 
 About Zoe:
 - Works at a Japanese recruitment/staffing company as a recruitment consultant
@@ -40,6 +48,7 @@ Output style: simple, accurate, human-like, concise, proactive, educational — 
     const finalSystem = systemPrompt
       ? `${BASE_SYSTEM}\n\n---\n\n${systemPrompt}`
       : BASE_SYSTEM;
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
