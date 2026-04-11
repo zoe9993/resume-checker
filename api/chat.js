@@ -14,7 +14,6 @@ export default async function handler(req) {
   try {
     const { systemPrompt, messages } = await req.json();
 
-    // 日本時間で今日の日付を取得
     const today = new Date().toLocaleDateString('ja-JP', {
       timeZone: 'Asia/Tokyo',
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
@@ -52,7 +51,7 @@ Output style: simple, accurate, human-like, concise, proactive, educational — 
       ? `${BASE_SYSTEM}\n\n---\n\n${systemPrompt}`
       : BASE_SYSTEM;
 
-    // Anthropic APIにストリーミングで接続
+    // Anthropic APIをストリーミングで呼び出し
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -77,59 +76,49 @@ Output style: simple, accurate, human-like, concise, proactive, educational — 
       });
     }
 
-    // SSEストリームをクライアントに転送
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
+    // SSEを読み取ってテキストチャンクだけを抽出して転送
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
-    // バックグラウンドでストリームを処理
-    (async () => {
-      let fullText = '';
-      const reader = anthropicRes.body.getReader();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = anthropicRes.body.getReader();
+        let buffer = '';
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
               const data = line.slice(6).trim();
               if (data === '[DONE]') continue;
+
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-                  fullText += parsed.delta.text;
-                  // テキストをチャンクとして送信
-                  const payload = JSON.stringify({ chunk: parsed.delta.text }) + '\n';
-                  await writer.write(encoder.encode(payload));
+                if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+                  // テキストチャンクをそのまま送信
+                  controller.enqueue(encoder.encode(parsed.delta.text));
                 }
-                if (parsed.type === 'message_stop') {
-                  // 完了シグナルを送信
-                  await writer.write(encoder.encode(JSON.stringify({ done: true, content: fullText }) + '\n'));
-                }
-              } catch(e) {
-                // JSONパースエラーは無視
-              }
+              } catch(e) {}
             }
           }
+        } catch(e) {
+          controller.error(e);
+        } finally {
+          controller.close();
         }
-      } catch(e) {
-        await writer.write(encoder.encode(JSON.stringify({ error: e.message }) + '\n'));
-      } finally {
-        await writer.close();
       }
-    })();
+    });
 
-    return new Response(readable, {
+    return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-        'X-Content-Type-Options': 'nosniff',
       }
     });
 
