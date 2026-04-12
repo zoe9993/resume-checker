@@ -90,7 +90,7 @@ async function callOpenAI(finalSystem, messages) {
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-5.3',
+      model: 'gpt-4o',
       max_tokens: 8000,
       stream: true,
       messages: openaiMessages
@@ -295,7 +295,7 @@ CRITICAL OUTPUT RULES:
       ? `${BASE_SYSTEM}\n\n---\n\n${systemPrompt}`
       : BASE_SYSTEM;
 
-    if (model === 'gpt-5.3')          return await callOpenAI(finalSystem, trimmedMessages);
+    if (model === 'gpt-4o')           return await callOpenAI(finalSystem, trimmedMessages);
     if (model === 'gemini-2.5-flash') return await callGemini(finalSystem, trimmedMessages);
     return await callClaude(finalSystem, trimmedMessages);
 
