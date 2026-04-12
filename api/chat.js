@@ -1,18 +1,149 @@
 export const config = { runtime: 'edge' };
 
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function errorResponse(message, status = 500) {
+  return new Response(JSON.stringify({ error: message }), {
+    status, headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// 共通：SSEストリームからテキストチャンクだけを抽出して転送
+function toPlainStream(res, extractText) {
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = res.body.getReader();
+      let buffer = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (!data || data === '[DONE]') continue;
+            try {
+              const text = extractText(JSON.parse(data));
+              if (text) controller.enqueue(encoder.encode(text));
+            } catch(e) {}
+          }
+        }
+      } catch(e) { controller.error(e); }
+      finally { controller.close(); }
+    }
+  });
+  return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+}
+
+// ── Claude Sonnet 4 (Anthropic) ──────────────────────────────────────
+async function callClaude(finalSystem, messages) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return errorResponse('ANTHROPIC_API_KEYが設定されていません');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8000,
+      stream: true,
+      system: finalSystem,
+      messages
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    return errorResponse(err.error?.message || 'Claude APIエラー', res.status);
+  }
+
+  return toPlainStream(res, d =>
+    d.type === 'content_block_delta' && d.delta?.type === 'text_delta' ? d.delta.text : null
+  );
+}
+
+// ── GPT-5.3 (OpenAI) ─────────────────────────────────────────────────
+async function callOpenAI(finalSystem, messages) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return errorResponse('OPENAI_API_KEYが設定されていません');
+
+  const openaiMessages = [
+    { role: 'system', content: finalSystem },
+    ...messages.map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content
+    }))
+  ];
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-5.3',
+      max_tokens: 8000,
+      stream: true,
+      messages: openaiMessages
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    return errorResponse(err.error?.message || 'OpenAI APIエラー', res.status);
+  }
+
+  return toPlainStream(res, d => d.choices?.[0]?.delta?.content || null);
+}
+
+// ── Gemini 2.5 Flash (Google) ─────────────────────────────────────────
+async function callGemini(finalSystem, messages) {
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) return errorResponse('GOOGLE_API_KEYが設定されていません');
+
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: finalSystem }] },
+        contents,
+        generationConfig: { maxOutputTokens: 8000 }
+      })
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    return errorResponse(err.error?.message || 'Gemini APIエラー', res.status);
+  }
+
+  return toPlainStream(res, d => d.candidates?.[0]?.content?.parts?.[0]?.text || null);
+}
+
+// ── メインハンドラー ───────────────────────────────────────────────────
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'APIキーが設定されていません' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
-    });
-  }
 
   try {
-    const { systemPrompt, messages } = await req.json();
+    const { systemPrompt, messages, model = 'claude-sonnet-4' } = await req.json();
 
     // 日本時間で今日の日付を取得
     const today = new Date().toLocaleDateString('ja-JP', {
@@ -21,7 +152,7 @@ export default async function handler(req) {
     });
 
     // 直近20件だけ使用（400エラー防止）
-    const trimmedMessages = Array.isArray(messages) ? messages.slice(-20) : messages;
+    const trimmedMessages = Array.isArray(messages) ? messages.slice(-20) : [];
 
     const BASE_SYSTEM = `今日の日付は${today}です。年数計算・在籍期間・経験年数は必ず今日の日付を基準に正確に計算してください。未来の日付と判断しないこと。
 
@@ -164,75 +295,9 @@ CRITICAL OUTPUT RULES:
       ? `${BASE_SYSTEM}\n\n---\n\n${systemPrompt}`
       : BASE_SYSTEM;
 
-    // Anthropic APIをストリーミングで呼び出し
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        stream: true,
-        system: finalSystem,
-        messages: trimmedMessages
-      })
-    });
-
-    if (!anthropicRes.ok) {
-      const err = await anthropicRes.json();
-      return new Response(JSON.stringify({ error: err.error?.message || 'APIエラー' }), {
-        status: anthropicRes.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // SSEを読み取ってテキストチャンクだけを抽出して転送
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = anthropicRes.body.getReader();
-        let buffer = '';
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const data = line.slice(6).trim();
-              if (data === '[DONE]') continue;
-
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-                  controller.enqueue(encoder.encode(parsed.delta.text));
-                }
-              } catch(e) {}
-            }
-          }
-        } catch(e) {
-          controller.error(e);
-        } finally {
-          controller.close();
-        }
-      }
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-      }
-    });
+    if (model === 'gpt-5.3')          return await callOpenAI(finalSystem, trimmedMessages);
+    if (model === 'gemini-2.5-flash') return await callGemini(finalSystem, trimmedMessages);
+    return await callClaude(finalSystem, trimmedMessages);
 
   } catch(e) {
     return new Response(JSON.stringify({ error: e.message }), {

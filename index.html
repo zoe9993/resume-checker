@@ -506,6 +506,24 @@ body {
 
 .input-hint { text-align: center; font-size: 9px; color: var(--text3); margin-top: 6px; font-family: 'DM Mono', monospace; letter-spacing: 0.03em; }
 
+/* ── MODEL SELECTOR ── */
+.model-selector { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+.model-btn {
+  padding: 3px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text3);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.model-btn:hover { border-color: var(--border2); color: var(--text2); }
+.model-btn.active { background: var(--accent-light); border-color: rgba(91,138,240,0.4); color: var(--accent); }
+
 #pdfFileInput { display: none; }
 
 /* ── NO PROJECT ── */
@@ -613,7 +631,7 @@ body {
   <div class="projects-list" id="projectsList"></div>
   <div class="sidebar-footer">
     <div class="status-dot"></div>
-    Claude Sonnet 4.6
+    <span id="footerModel">Claude Sonnet 4</span>
   </div>
 </div>
 
@@ -662,11 +680,20 @@ if (typeof marked !== 'undefined') {
 const GENERAL_ID = '__general__';
 const EMOJIS = ['💬','📧','📄','📋','🔍','✍️','📊','🤝','💼','🎯','⚡','🌐','📝','🗂️','💡','🧠','🗣️','📨'];
 const MEMO_MARKERS = ['【確認メモ】', '[確認メモ]', '【Confirmation Notes】'];
+const MODELS = [
+  { id: 'claude-sonnet-4',   label: 'Claude Sonnet 4' },
+  { id: 'gpt-5.3',           label: 'GPT-5.3' },
+  { id: 'gemini-2.5-flash',  label: 'Gemini 2.5 Flash' },
+];
 
 let projects = [], currentProjectId = null, editingProjectId = null;
 let selectedEmoji = '💬', isLoading = false, pendingPdf = null;
+let currentModel = 'claude-sonnet-4';
 
 async function init() {
+  currentModel = localStorage.getItem('selectedModel') || 'claude-sonnet-4';
+  const footer = document.getElementById('footerModel');
+  if (footer) footer.textContent = MODELS.find(m => m.id === currentModel)?.label || 'Claude Sonnet 4';
   await loadProjects();
   document.getElementById('loadingOverlay').style.display = 'none';
   renderSidebar();
@@ -752,6 +779,16 @@ function toggleSidebar() {
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+function selectModel(id) {
+  currentModel = id;
+  localStorage.setItem('selectedModel', id);
+  document.querySelectorAll('.model-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.model === id);
+  });
+  const footer = document.getElementById('footerModel');
+  if (footer) footer.textContent = MODELS.find(m => m.id === id)?.label || id;
 }
 
 function initEmojiPicker() {
@@ -907,6 +944,9 @@ function renderChatArea() {
     <div class="chat-area" id="chatArea"></div>
     <div class="input-area">
       <div class="input-inner">
+        <div class="model-selector">
+          ${MODELS.map(m => `<button class="model-btn ${currentModel===m.id?'active':''}" data-model="${m.id}" onclick="selectModel('${m.id}')">${m.label}</button>`).join('')}
+        </div>
         <div class="input-wrap">
           <button class="pdf-btn" id="pdfBtn" onclick="triggerPdfUpload()" title="PDFをアップロード">📎</button>
           <textarea class="chat-input" id="chatInput"
@@ -1120,7 +1160,7 @@ async function callAPI(msgs, pdfData = null) {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ systemPrompt: p?.prompt || '', messages: apiMessages })
+      body: JSON.stringify({ systemPrompt: p?.prompt || '', messages: apiMessages, model: currentModel })
     });
 
     if (!res.ok) {
