@@ -963,6 +963,30 @@ function removeImage() {
   document.getElementById('imgBtn')?.classList.remove('active');
 }
 
+function handlePaste(e) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (!item.type.startsWith('image/')) continue;
+    const file = item.getAsFile();
+    if (!file) continue;
+    e.preventDefault();
+    const allowed = ['image/jpeg','image/png','image/gif','image/webp'];
+    if (!allowed.includes(file.type)) { alert('JPG・PNG・GIF・WebP形式のみ対応しています'); return; }
+    if (file.size > 10 * 1024 * 1024) { alert('画像は10MB以下にしてください'); return; }
+    pendingImage = { name: file.name || 'pasted-image.png', base64: null, mimeType: file.type, loading: true };
+    renderImagePreview('読み込み中...');
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pendingImage = { name: file.name || 'pasted-image.png', base64: ev.target.result.split(',')[1], mimeType: file.type, loading: false };
+      renderImagePreview();
+    };
+    reader.onerror = () => { alert('画像の読み込みに失敗しました'); pendingImage = null; renderImagePreview(); };
+    reader.readAsDataURL(file);
+    return;
+  }
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────
 function getMessages() { return JSON.parse(localStorage.getItem(`chat_${currentProjectId}`) || '[]'); }
 function saveMessages(msgs) { localStorage.setItem(`chat_${currentProjectId}`, JSON.stringify(msgs)); }
@@ -1007,7 +1031,7 @@ function renderChatArea() {
           <button class="pdf-btn" id="imgBtn" onclick="triggerImageUpload()" title="画像をアップロード">🖼️</button>
           <textarea class="chat-input" id="chatInput"
             placeholder="メッセージを入力..."
-            rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)" onpaste="handlePaste(event)"></textarea>
           <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
         </div>
         <div class="input-hint">Enter で送信 · Shift+Enter で改行 · 📎 PDF · 🖼️ 画像</div>
