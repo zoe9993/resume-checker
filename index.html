@@ -644,9 +644,106 @@ body {
   /* キーボード表示中（input focus時）はモデル選択バーを隠してスペース確保 */
   .input-area:focus-within .model-selector { display: none; }
 }
+
+/* ── LOGIN OVERLAY ── */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 40px 36px;
+  width: 340px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.login-logo {
+  width: 44px;
+  height: 44px;
+  background: var(--accent-light);
+  border: 1px solid rgba(91,138,240,0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-logo-dot {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(91,138,240,0.6);
+}
+.login-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+}
+.login-subtitle {
+  font-size: 13px;
+  color: var(--text2);
+  text-align: center;
+  margin-top: -10px;
+}
+.login-input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.login-input:focus { border-color: var(--accent); }
+.login-input.error { border-color: var(--danger); }
+.login-error {
+  font-size: 13px;
+  color: var(--danger);
+  display: none;
+}
+.login-btn {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.login-btn:hover { background: var(--accent2); }
+.login-btn:disabled { opacity: 0.6; cursor: default; }
 </style>
 </head>
 <body>
+
+<div class="login-overlay" id="loginOverlay" style="display:none">
+  <div class="login-box">
+    <div class="login-logo"><div class="login-logo-dot"></div></div>
+    <div class="login-title">Zoe's AI Assistant</div>
+    <div class="login-subtitle">パスワードを入力してください</div>
+    <input type="password" class="login-input" id="loginInput" placeholder="Password" onkeydown="if(event.key==='Enter')submitLogin()">
+    <div class="login-error" id="loginError">パスワードが違います</div>
+    <button class="login-btn" id="loginBtn" onclick="submitLogin()">ログイン</button>
+  </div>
+</div>
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
@@ -735,13 +832,67 @@ let projects = [], currentProjectId = null, editingProjectId = null;
 let selectedEmoji = '💬', isLoading = false, pendingPdf = null, pendingImage = null;
 let currentModel = 'claude-sonnet-4';
 
-async function init() {
+/* ── AUTH ── */
+function isAuthenticated() {
+  return localStorage.getItem('zoe_auth') === 'ok';
+}
+
+async function submitLogin() {
+  const input = document.getElementById('loginInput');
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  const password = input.value.trim();
+  if (!password) return;
+
+  btn.disabled = true;
+  btn.textContent = '確認中...';
+  errEl.style.display = 'none';
+  input.classList.remove('error');
+
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      localStorage.setItem('zoe_auth', 'ok');
+      document.getElementById('loginOverlay').style.display = 'none';
+      startApp();
+    } else {
+      errEl.style.display = 'block';
+      input.classList.add('error');
+      input.value = '';
+      input.focus();
+    }
+  } catch (e) {
+    errEl.textContent = 'エラーが発生しました。再試行してください。';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ログイン';
+  }
+}
+
+async function startApp() {
+  document.getElementById('loadingOverlay').style.display = 'flex';
   currentModel = localStorage.getItem('selectedModel') || 'claude-sonnet-4';
   const footer = document.getElementById('footerModel');
   if (footer) footer.textContent = MODELS.find(m => m.id === currentModel)?.label || 'Claude Sonnet 4';
   await loadProjects();
   document.getElementById('loadingOverlay').style.display = 'none';
   renderSidebar();
+}
+
+async function init() {
+  if (isAuthenticated()) {
+    await startApp();
+  } else {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('loginOverlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('loginInput').focus(), 100);
+  }
 }
 
 async function loadProjects() {
