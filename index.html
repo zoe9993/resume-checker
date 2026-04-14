@@ -767,16 +767,24 @@ async function deleteProjectAPI(id) {
 
 function renderSidebar() {
   const list = document.getElementById('projectsList');
-  let html = `<div class="section-label">General</div>
-    <div class="project-item ${currentProjectId===GENERAL_ID?'active':''}" onclick="selectProject('${GENERAL_ID}')">
+  const generalConvs = getGeneralConversations();
+  let html = `
+    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;padding-right:6px">
+      <span>General</span>
+      <button class="icon-btn" onclick="createGeneralConversation()" title="新しい会話" style="font-size:13px">＋</button>
+    </div>
+    ${generalConvs.map(conv => `
+    <div class="project-item ${currentProjectId===conv.id?'active':''}" onclick="selectProject('${conv.id}')">
       <div class="project-info">
         <div class="project-emoji">💬</div>
         <div class="project-text">
-          <div class="project-name">汎用チャット</div>
-          <div class="project-desc">何でも聞いてください</div>
+          <div class="project-name">${escapeHtml(conv.name)}</div>
         </div>
       </div>
-    </div>`;
+      <div class="project-actions">
+        <button class="icon-btn danger" onclick="event.stopPropagation();deleteGeneralConversation('${conv.id}')">🗑</button>
+      </div>
+    </div>`).join('')}`;
 
   if (projects.length > 0) {
     html += `<div class="section-label" style="margin-top:8px">Projects</div>`;
@@ -829,6 +837,42 @@ function selectModel(id) {
   });
   const footer = document.getElementById('footerModel');
   if (footer) footer.textContent = MODELS.find(m => m.id === id)?.label || id;
+}
+
+// ── 汎用チャット複数会話 ──────────────────────────────────────────────
+function isGeneralChat(id) {
+  return id === GENERAL_ID || (id && id.startsWith('__gen_'));
+}
+
+function getGeneralConversations() {
+  try {
+    const saved = localStorage.getItem('general_conversations');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return [{ id: GENERAL_ID, name: '会話1' }];
+}
+
+function saveGeneralConversations(convs) {
+  localStorage.setItem('general_conversations', JSON.stringify(convs));
+}
+
+function createGeneralConversation() {
+  const convs = getGeneralConversations();
+  const newId = `__gen_${Date.now()}__`;
+  convs.push({ id: newId, name: `会話${convs.length + 1}` });
+  saveGeneralConversations(convs);
+  currentProjectId = newId;
+  renderSidebar(); renderChatArea(); closeSidebar();
+}
+
+function deleteGeneralConversation(id) {
+  if (!confirm('この会話を削除しますか？')) return;
+  let convs = getGeneralConversations().filter(c => c.id !== id);
+  if (convs.length === 0) convs = [{ id: GENERAL_ID, name: '会話1' }];
+  saveGeneralConversations(convs);
+  localStorage.removeItem(`chat_${id}`);
+  if (currentProjectId === id) { currentProjectId = convs[0].id; renderChatArea(); }
+  renderSidebar();
 }
 
 function initEmojiPicker() {
@@ -1049,9 +1093,9 @@ function renderNoProject() {
 
 function renderChatArea() {
   if (!currentProjectId) { renderNoProject(); return; }
-  const isGeneral = currentProjectId === GENERAL_ID;
+  const isGeneral = isGeneralChat(currentProjectId);
   const p = isGeneral
-    ? { name:'汎用チャット', emoji:'💬', prompt:'', id:GENERAL_ID }
+    ? (() => { const c = getGeneralConversations().find(x=>x.id===currentProjectId); return { name: c?.name||'汎用チャット', emoji:'💬', prompt:'', id:currentProjectId }; })()
     : projects.find(x => x.id === currentProjectId);
   if (!p) { renderNoProject(); return; }
 
@@ -1140,8 +1184,8 @@ function renderMessages() {
   if (!chatArea) return;
   const msgs = getMessages();
   if (!msgs.length) {
-    const isGeneral = currentProjectId === GENERAL_ID;
-    const p = isGeneral ? { emoji:'💬', name:'汎用チャット', description:'何でも聞いてください' } : projects.find(x => x.id === currentProjectId);
+    const isGeneral = isGeneralChat(currentProjectId);
+    const p = isGeneral ? (() => { const c = getGeneralConversations().find(x=>x.id===currentProjectId); return { emoji:'💬', name:c?.name||'汎用チャット', description:'何でも聞いてください' }; })() : projects.find(x => x.id === currentProjectId);
     chatArea.innerHTML = `<div class="empty-state">
       <div class="empty-icon">${p?.emoji||'💬'}</div>
       <div class="empty-title">${escapeHtml(p?.name||'')}</div>
@@ -1220,6 +1264,8 @@ async function regenMsg(i) {
 // Enter→送信、Shift+Enter→改行
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile) return;
     e.preventDefault();
     sendMessage();
   }
@@ -1281,7 +1327,7 @@ async function callAPI(msgs, pdfData = null, imageData = null) {
   }
 
   try {
-    const isGeneral = currentProjectId === GENERAL_ID;
+    const isGeneral = isGeneralChat(currentProjectId);
     const p = isGeneral ? null : projects.find(x => x.id === currentProjectId);
 
     const apiMessages = msgs.map((m, idx) => {
