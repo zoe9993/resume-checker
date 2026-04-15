@@ -1734,7 +1734,13 @@ function openFeedbackModal(msgIndex, type) {
   const isGeneral = isGeneralChat(currentProjectId);
   const typeLabel = type === 'positive' ? '👍 良い点を記憶' : '👎 改善点を記憶';
   document.getElementById('feedbackTypeLabel').textContent = typeLabel;
-  document.getElementById('feedbackContent').value = '';
+
+  // AIの返答を自動で内容欄にセット
+  const { main } = splitMemo(msg.content);
+  const autoContent = type === 'positive'
+    ? main.slice(0, 300)
+    : main.slice(0, 300);
+  document.getElementById('feedbackContent').value = autoContent;
 
   let scopeHtml = '<label class="form-label" style="margin-bottom:6px;display:block">スコープ</label>'
     + '<div style="display:flex;gap:8px;margin-bottom:4px">'
