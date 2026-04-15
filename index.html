@@ -873,7 +873,7 @@ body {
   </div>
 </div>
 
-<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="closeModalOutside(event)">
+<div class="modal-overlay" id="modalOverlay" style="display:none">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title" id="modalTitle">新しいプロジェクト</div>
     <div class="form-group">
@@ -1402,15 +1402,14 @@ async function confirmUrl() {
 function renderUrlPreview() {
   const bar = document.getElementById('urlPreviewBar');
   if (!bar) return;
-  if (!pendingUrl) { bar.style.display = 'none'; return; }
+  if (!pendingUrl) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.style.display = 'flex';
-  const nameEl = document.getElementById('urlPreviewName');
-  if (!nameEl) return;
   if (pendingUrl.loading) {
-    nameEl.textContent = 'ページを取得中...';
+    bar.innerHTML = `<span>🔗</span><span class="pdf-preview-name">ページを取得中...</span><button class="pdf-remove-btn" onclick="removeUrl()">✕</button>`;
   } else {
     const truncMsg = pendingUrl.truncated ? '（一部省略）' : '';
-    nameEl.textContent = `${pendingUrl.domain}（${pendingUrl.charCount.toLocaleString()}文字取得済み${truncMsg}）`;
+    const label = `${pendingUrl.domain}（${pendingUrl.charCount.toLocaleString()}文字取得済み${truncMsg}）`;
+    bar.innerHTML = `<span>🔗</span><span class="pdf-preview-name">${label}</span><button onclick="showUrlContentPreview()" style="background:#3a3a5c;border:none;color:#a5b4fc;cursor:pointer;font-size:11px;padding:2px 7px;border-radius:4px;flex-shrink:0;white-space:nowrap">内容確認</button><button class="pdf-remove-btn" onclick="removeUrl()">✕</button>`;
   }
 }
 
@@ -1419,6 +1418,16 @@ function removeUrl() {
   const bar = document.getElementById('urlPreviewBar');
   if (bar) bar.style.display = 'none';
   document.getElementById('urlBtn')?.classList.remove('active');
+}
+
+function showUrlContentPreview() {
+  if (!pendingUrl || !pendingUrl.text) return;
+  const modal = document.getElementById('urlContentModal');
+  const pre = document.getElementById('urlContentText');
+  if (!modal || !pre) return;
+  const preview = pendingUrl.text.slice(0, 3000);
+  pre.textContent = preview + (pendingUrl.text.length > 3000 ? '\n\n...（以下省略）' : '');
+  modal.style.display = 'flex';
 }
 
 function handlePaste(e) {
@@ -1500,9 +1509,16 @@ function renderChatArea() {
           <button class="pdf-remove-btn" onclick="cancelUrlInput()">✕</button>
         </div>
         <div class="pdf-preview" id="urlPreviewBar" style="display:none">
-          <span>🔗</span>
-          <span class="pdf-preview-name" id="urlPreviewName"></span>
-          <button class="pdf-remove-btn" onclick="removeUrl()">✕</button>
+        </div>
+        <div id="urlContentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
+          <div style="background:#1e1e2e;border-radius:12px;padding:20px;max-width:680px;width:90%;max-height:70vh;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <strong style="color:#e2e8f0">🔗 取得されたテキスト内容</strong>
+              <button onclick="document.getElementById('urlContentModal').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px">✕</button>
+            </div>
+            <p style="color:#94a3b8;font-size:12px;margin:0">⚠️ JavaScriptで描画されるサイトは内容が取得できない場合があります。以下が実際にAIに送られるテキストです。</p>
+            <pre id="urlContentText" style="background:#0f0f1a;color:#cbd5e1;padding:12px;border-radius:8px;font-size:12px;overflow-y:auto;max-height:45vh;white-space:pre-wrap;word-break:break-all;margin:0"></pre>
+          </div>
         </div>
         <div class="input-wrap">
           <button class="pdf-btn" id="pdfBtn" onclick="triggerPdfUpload()" title="PDFをアップロード">📎</button>
@@ -1517,6 +1533,7 @@ function renderChatArea() {
       </div>
     </div>`;
   renderMessages();
+  renderUrlPreview();
   document.getElementById('chatInput')?.focus();
 }
 
@@ -1738,7 +1755,11 @@ async function callAPI(msgs, pdfData = null, imageData = null, urlData = null) {
         content = content.trim();
         if (urlData && !urlData.loading) {
           const truncNote = urlData.truncated ? '\n（※ページが長いため一部省略）' : '';
-          content = `以下は「${urlData.url}」から取得したページの内容です${truncNote}：\n\n${urlData.text}\n\n---\n${content || 'このページの内容を分析してください。'}`;
+          const hasContent = urlData.text && urlData.text.trim().length > 200;
+          const contentWarning = hasContent
+            ? ''
+            : '\n\n⚠️【警告】このページはJavaScriptで動的に描画されているため、テキスト取得がほぼ空です。以下の内容で回答できない場合はその旨を明示し、自分の学習データで補完しないでください。';
+          content = `以下は「${urlData.url}」から取得したページのテキスト内容です${truncNote}${contentWarning}：\n\n${urlData.text || '（テキストを取得できませんでした）'}\n\n---\n【絶対ルール】\n- 上記テキストに明記されている情報のみ使用すること\n- テキストに存在しない数字・日付・住所・人数は「URLに記載なし」と書くこと\n- 自分の学習データ・事前知識で補完することは厳禁\n- 上記テキストが空または少ない場合は「このURLからは情報を取得できませんでした」と明示すること\n\n${content || 'このページの内容を分析してください。'}`;
         }
         if (pdfData) {
           content = `以下は「${pdfData.name}」から抽出したテキストです：\n\n${pdfData.text}\n\n---\n${content || 'このPDFの内容を把握してください。'}`;
