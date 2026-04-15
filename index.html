@@ -1877,7 +1877,8 @@ async function loadMemoryLib() {
   listEl.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">読み込み中...</div>';
   try {
     const isGeneral = isGeneralChat(currentProjectId);
-    const url = isGeneral ? '/api/memories' : `/api/memories?project_id=${currentProjectId}`;
+    const hasProject = currentProjectId && !isGeneral;
+    const url = hasProject ? `/api/memories?project_id=${currentProjectId}` : '/api/memories';
     const res = await fetch(url);
     if (!res.ok) {
       let detail = `HTTP ${res.status}`;
