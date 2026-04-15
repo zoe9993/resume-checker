@@ -1740,7 +1740,9 @@ function openFeedbackModal(msgIndex, type) {
     + '<div style="display:flex;gap:8px;margin-bottom:4px">'
     + '<button class="scope-btn active" id="scopeGlobal" onclick="selectFeedbackScope(\'global\')">🌐 グローバル</button>';
   if (!isGeneral) {
-    scopeHtml += '<button class="scope-btn" id="scopeProject" onclick="selectFeedbackScope(\'project\')">📁 このプロジェクト</button>';
+    const p = projects.find(x => x.id === currentProjectId);
+    const pName = p ? p.name : 'このプロジェクト';
+    scopeHtml += `<button class="scope-btn" id="scopeProject" onclick="selectFeedbackScope('project')">📁 ${escapeHtml(pName)}</button>`;
   }
   scopeHtml += '</div>';
   document.getElementById('feedbackScopeArea').innerHTML = scopeHtml;
@@ -1939,9 +1941,16 @@ function openAddMemoryForm() {
   addMemScope = 'global';
   addMemType = 'positive';
   const isGeneral = isGeneralChat(currentProjectId);
-  document.getElementById('addScopeProject').style.display = isGeneral ? 'none' : '';
+  const projBtn = document.getElementById('addScopeProject');
+  if (isGeneral) {
+    projBtn.style.display = 'none';
+  } else {
+    projBtn.style.display = '';
+    const p = projects.find(x => x.id === currentProjectId);
+    projBtn.textContent = `📁 ${p ? p.name : 'このプロジェクト'}`;
+  }
   document.getElementById('addScopeGlobal').classList.add('active');
-  document.getElementById('addScopeProject').classList.remove('active');
+  projBtn.classList.remove('active');
   document.getElementById('addTypePositive').classList.add('active');
   document.getElementById('addTypeNegative').classList.remove('active');
   document.getElementById('addMemContent').value = '';
