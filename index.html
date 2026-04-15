@@ -859,19 +859,53 @@ body {
 </div>
 
 <div class="main" id="mainArea">
+  <!-- トップバー：常に存在、内容だけ更新 -->
   <div class="topbar">
     <div class="topbar-left">
       <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-      <div class="app-logo" style="margin:0">
-        <div class="logo-mark"><div class="logo-dot"></div></div>
-        <span class="app-title">Zoe's AI Assistant</span>
-      </div>
+      <div id="topbarBadge" class="topbar-badge" style="display:none"></div>
+      <div id="topbarName" class="current-name">Zoe's AI Assistant</div>
+    </div>
+    <div class="topbar-actions" id="topbarActions"></div>
+  </div>
+  <!-- チャットエリア：内容だけ更新 -->
+  <div class="chat-area" id="chatArea">
+    <div class="no-project">
+      <div class="no-project-icon">✦</div>
+      <h2>Zoe's AI Assistant</h2>
+      <p>左のサイドバーからプロジェクトを選んでください。</p>
     </div>
   </div>
-  <div class="no-project">
-    <div class="no-project-icon">✦</div>
-    <h2>Zoe's AI Assistant</h2>
-    <p>左のサイドバーからプロジェクトを選んでください。</p>
+  <!-- 入力エリア：一度だけ作成、破棄しない -->
+  <div class="input-area" id="inputArea" style="display:none">
+    <div class="input-inner">
+      <div class="model-selector" id="modelSelector"></div>
+      <div class="pdf-preview" id="urlInputBar" style="display:none">
+        <span>🔗</span>
+        <input type="url" id="urlInputField" class="url-input-field" placeholder="https://..." onkeydown="if(event.key==='Enter')confirmUrl()">
+        <button class="url-fetch-btn" onclick="confirmUrl()">取得</button>
+        <button class="pdf-remove-btn" onclick="cancelUrlInput()">✕</button>
+      </div>
+      <div class="pdf-preview" id="urlPreviewBar" style="display:none"></div>
+      <div id="urlContentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#1e1e2e;border-radius:12px;padding:20px;max-width:680px;width:90%;max-height:70vh;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <strong style="color:#e2e8f0">🔗 取得されたテキスト内容</strong>
+            <button onclick="document.getElementById('urlContentModal').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px">✕</button>
+          </div>
+          <p style="color:#94a3b8;font-size:12px;margin:0">⚠️ JavaScriptで描画されるサイトは内容が取得できない場合があります。以下が実際にAIに送られるテキストです。</p>
+          <pre id="urlContentText" style="background:#0f0f1a;color:#cbd5e1;padding:12px;border-radius:8px;font-size:12px;overflow-y:auto;max-height:45vh;white-space:pre-wrap;word-break:break-all;margin:0"></pre>
+        </div>
+      </div>
+      <div class="input-wrap">
+        <button class="pdf-btn" id="pdfBtn" onclick="triggerPdfUpload()" title="PDFをアップロード">📎</button>
+        <button class="pdf-btn" id="imgBtn" onclick="triggerImageUpload()" title="画像をアップロード">🖼️</button>
+        <button class="pdf-btn" id="urlBtn" onclick="triggerUrlFetch()" title="URLを取得して分析">🔗</button>
+        <textarea class="chat-input" id="chatInput" placeholder="メッセージを入力..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)" onpaste="handlePaste(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+      <div class="input-hint">Enter で送信 · Shift+Enter で改行 · 📎 PDF · 🖼️ 画像 · 🔗 URL取得</div>
+    </div>
   </div>
 </div>
 
@@ -1034,6 +1068,11 @@ async function startApp() {
   currentModel = localStorage.getItem('selectedModel') || 'claude-sonnet-4';
   const footer = document.getElementById('footerModel');
   if (footer) footer.textContent = MODELS.find(m => m.id === currentModel)?.label || 'Claude Sonnet 4';
+  // モデルセレクターを一度だけ初期化
+  const modelSel = document.getElementById('modelSelector');
+  if (modelSel) modelSel.innerHTML = MODELS.map(m =>
+    `<button class="model-btn ${currentModel===m.id?'active':''}" data-model="${m.id}" onclick="selectModel('${m.id}')">${m.label}</button>`
+  ).join('');
   await loadProjects();
   document.getElementById('loadingOverlay').style.display = 'none';
   renderSidebar();
@@ -1479,16 +1518,11 @@ function saveMessages(msgs) {
 }
 
 function renderNoProject() {
-  document.getElementById('mainArea').innerHTML = `
-    <div class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-        <div class="app-logo" style="margin:0">
-          <div class="logo-mark"><div class="logo-dot"></div></div>
-          <span class="app-title">Zoe's AI Assistant</span>
-        </div>
-      </div>
-    </div>
+  document.getElementById('topbarBadge').style.display = 'none';
+  document.getElementById('topbarName').textContent = "Zoe's AI Assistant";
+  document.getElementById('topbarActions').innerHTML = '';
+  document.getElementById('inputArea').style.display = 'none';
+  document.getElementById('chatArea').innerHTML = `
     <div class="no-project">
       <div class="no-project-icon">✦</div>
       <h2>Zoe's AI Assistant</h2>
@@ -1504,54 +1538,18 @@ function renderChatArea() {
     : projects.find(x => x.id === currentProjectId);
   if (!p) { renderNoProject(); return; }
 
-  document.getElementById('mainArea').innerHTML = `
-    <div class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-        <div class="topbar-badge">${p.emoji||'💬'}</div>
-        <div class="current-name">${escapeHtml(p.name)}</div>
-      </div>
-      <div class="topbar-actions">
-        ${!isGeneral ? `<button class="topbar-btn primary" onclick="openEditModal('${p.id}')">⚙ <span>Prompt</span></button>` : ''}
-        <button class="topbar-btn danger" onclick="clearChat()">🗑 <span>クリア</span></button>
-      </div>
-    </div>
-    <div class="chat-area" id="chatArea"></div>
-    <div class="input-area">
-      <div class="input-inner">
-        <div class="model-selector">
-          ${MODELS.map(m => `<button class="model-btn ${currentModel===m.id?'active':''}" data-model="${m.id}" onclick="selectModel('${m.id}')">${m.label}</button>`).join('')}
-        </div>
-        <div class="pdf-preview" id="urlInputBar" style="display:none">
-          <span>🔗</span>
-          <input type="url" id="urlInputField" class="url-input-field" placeholder="https://..." onkeydown="if(event.key==='Enter')confirmUrl()">
-          <button class="url-fetch-btn" onclick="confirmUrl()">取得</button>
-          <button class="pdf-remove-btn" onclick="cancelUrlInput()">✕</button>
-        </div>
-        <div class="pdf-preview" id="urlPreviewBar" style="display:none">
-        </div>
-        <div id="urlContentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
-          <div style="background:#1e1e2e;border-radius:12px;padding:20px;max-width:680px;width:90%;max-height:70vh;display:flex;flex-direction:column;gap:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <strong style="color:#e2e8f0">🔗 取得されたテキスト内容</strong>
-              <button onclick="document.getElementById('urlContentModal').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px">✕</button>
-            </div>
-            <p style="color:#94a3b8;font-size:12px;margin:0">⚠️ JavaScriptで描画されるサイトは内容が取得できない場合があります。以下が実際にAIに送られるテキストです。</p>
-            <pre id="urlContentText" style="background:#0f0f1a;color:#cbd5e1;padding:12px;border-radius:8px;font-size:12px;overflow-y:auto;max-height:45vh;white-space:pre-wrap;word-break:break-all;margin:0"></pre>
-          </div>
-        </div>
-        <div class="input-wrap">
-          <button class="pdf-btn" id="pdfBtn" onclick="triggerPdfUpload()" title="PDFをアップロード">📎</button>
-          <button class="pdf-btn" id="imgBtn" onclick="triggerImageUpload()" title="画像をアップロード">🖼️</button>
-          <button class="pdf-btn" id="urlBtn" onclick="triggerUrlFetch()" title="URLを取得して分析">🔗</button>
-          <textarea class="chat-input" id="chatInput"
-            placeholder="メッセージを入力..."
-            rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)" onpaste="handlePaste(event)"></textarea>
-          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
-        </div>
-        <div class="input-hint">Enter で送信 · Shift+Enter で改行 · 📎 PDF · 🖼️ 画像 · 🔗 URL取得</div>
-      </div>
-    </div>`;
+  // トップバーのテキストだけ更新（DOM再構築なし）
+  const badge = document.getElementById('topbarBadge');
+  badge.style.display = '';
+  badge.textContent = p.emoji || '💬';
+  document.getElementById('topbarName').textContent = p.name;
+  document.getElementById('topbarActions').innerHTML =
+    (!isGeneral ? `<button class="topbar-btn primary" onclick="openEditModal('${p.id}')">⚙ <span>Prompt</span></button>` : '') +
+    `<button class="topbar-btn danger" onclick="clearChat()">🗑 <span>クリア</span></button>`;
+
+  // 入力エリアを表示（作り直しなし）
+  document.getElementById('inputArea').style.display = '';
+
   renderMessages();
   renderUrlPreview();
   document.getElementById('chatInput')?.focus();
