@@ -2028,22 +2028,58 @@ async function saveEditMsg(i) {
   const fullContent = _editMemo ? `${newContent}\n${_editMemo}` : newContent;
   msgs[i] = { ...msgs[i], content: fullContent };
   saveMessages(msgs);
+  renderMessages();
 
-  // 修正をグローバル記憶として保存
+  // 修正内容を見せながら「ルールとして覚えるか」を聞く
+  openEditMemoryModal(_editOriginal, newContent);
+}
+
+function openEditMemoryModal(original, edited) {
+  // すでに存在すれば再利用、なければ作成
+  let overlay = document.getElementById('editMemOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'editMemOverlay';
+    overlay.className = 'modal-overlay';
+    overlay.style.cssText = 'display:none';
+    overlay.onclick = e => { if(e.target===overlay) overlay.style.display='none'; };
+    overlay.innerHTML = `
+      <div class="modal" onclick="event.stopPropagation()" style="max-width:460px">
+        <div class="modal-title">✏️ この修正をルールとして覚えますか？</div>
+        <div style="background:var(--surface2);border-radius:7px;padding:10px 12px;font-size:11px;color:var(--text3);margin-bottom:12px;max-height:80px;overflow:hidden;line-height:1.5" id="editMemDiff"></div>
+        <div class="form-group">
+          <label class="form-label">このスタイルのどこが良い？（AIへのルールとして書く）</label>
+          <p style="font-size:11px;color:var(--text3);margin:-2px 0 6px">例：「箇条書きではなく文章形式にする」「敬語は〜です・ます体に統一」</p>
+          <textarea class="form-textarea" id="editMemContent" style="min-height:70px" placeholder="ルールを入力（空白の場合は保存しません）"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="document.getElementById('editMemOverlay').style.display='none'">スキップ</button>
+          <button class="btn btn-primary" onclick="saveEditMemory()">ルールとして保存</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  const diff = document.getElementById('editMemDiff');
+  diff.innerHTML = `<span style="color:var(--danger)">修正前：</span>${escapeHtml(original.slice(0,120))}${original.length>120?'…':''}<br><span style="color:var(--success)">修正後：</span>${escapeHtml(edited.slice(0,120))}${edited.length>120?'…':''}`;
+  document.getElementById('editMemContent').value = '';
+  overlay.style.display = 'flex';
+  setTimeout(() => document.getElementById('editMemContent').focus(), 50);
+}
+
+async function saveEditMemory() {
+  const content = document.getElementById('editMemContent').value.trim();
+  document.getElementById('editMemOverlay').style.display = 'none';
+  if (!content) return;
+
   try {
     await fetch('/api/memories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        scope: 'global',
-        type: 'positive',
-        content: `ユーザーが修正した表現: ${newContent.slice(0, 200)}`
-      })
+      body: JSON.stringify({ scope: 'global', type: 'positive', content })
     });
-    showToast('修正を記憶として保存しました ✓');
+    showToast('ルールを記憶しました ✓');
   } catch(_e) {}
-
-  renderMessages();
 }
 
 /* ── クイック記憶追加 ── */
