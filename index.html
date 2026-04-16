@@ -460,6 +460,11 @@ body {
   color: var(--text); font-family: 'Noto Sans JP', sans-serif; font-size: 13px;
   padding: 8px; border-radius: 6px; outline: none;
   resize: vertical; min-height: 160px; line-height: 1.7;
+  box-sizing: border-box;
+}
+.message.ai .bubble-wrap:has(.edit-textarea) {
+  max-width: 96%;
+  width: 96%;
 }
 
 .memory-lib-btn {
