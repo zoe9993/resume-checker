@@ -69,7 +69,7 @@ async function callClaude(finalSystem, messages, imageData) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 4000,
-      temperature: 0.3,
+      temperature: 0.5,
       stream: true,
       system: [{ type: 'text', text: finalSystem, cache_control: { type: 'ephemeral' } }],
       messages: claudeMessages
@@ -117,7 +117,7 @@ async function callOpenAI(finalSystem, messages, imageData) {
     body: JSON.stringify({
       model: 'gpt-4o',
       max_tokens: 4000,
-      temperature: 0.3,
+      temperature: 0.5,
       stream: true,
       messages: openaiMessages
     })
@@ -158,7 +158,7 @@ async function callGemini(finalSystem, messages, imageData) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: finalSystem }] },
         contents,
-        generationConfig: { maxOutputTokens: 4000, temperature: 0.3 }
+        generationConfig: { maxOutputTokens: 4000, temperature: 0.5 }
       })
     }
   );
