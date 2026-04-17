@@ -1850,6 +1850,7 @@ async function callAPI(msgs, pdfData = null, imageData = null) {
     const allMsgs = getMessages();
     allMsgs.push({ role: 'ai', content: fullContent });
     saveMessages(allMsgs);
+    if (autoLearnEnabled) runAutoLearn();
 
   } catch(e) {
     document.getElementById('thinkingMsg')?.remove();
@@ -1863,8 +1864,6 @@ async function callAPI(msgs, pdfData = null, imageData = null) {
     if (sendBtn) sendBtn.disabled = false;
     renderMessages();
     document.getElementById('chatInput')?.focus();
-    // 自動学習：エラーでなければバックグラウンドで実行
-    if (autoLearnEnabled) runAutoLearn();
   }
 }
 
@@ -2316,7 +2315,7 @@ async function loadMemoryLib() {
     const isGeneral = isGeneralChat(currentProjectId);
     const hasProject = currentProjectId && !isGeneral;
     const url = hasProject ? `/api/memories?project_id=${currentProjectId}` : '/api/memories';
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) {
       let detail = `HTTP ${res.status}`;
       try { const j = await res.json(); detail = JSON.stringify(j.error || j) || detail; } catch(_){}
