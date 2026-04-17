@@ -1169,9 +1169,11 @@ async function startApp() {
 }
 
 async function init() {
-  if (isAuthenticated()) {
+  // sessionStorageにtokenがない場合は再ログインが必要
+  if (isAuthenticated() && sessionStorage.getItem('zoe_token')) {
     await startApp();
   } else {
+    localStorage.removeItem('zoe_auth');
     document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('loginOverlay').style.display = 'flex';
     setTimeout(() => document.getElementById('loginInput').focus(), 100);
