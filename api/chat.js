@@ -47,10 +47,13 @@ async function callClaude(finalSystem, messages, imageData, isResume) {
   const claudeMessages = messages.map((m, idx) => {
     const role = m.role === 'assistant' ? 'assistant' : 'user';
     if (imageData && idx === messages.length - 1 && role === 'user') {
+      const isPdf = imageData.mimeType === 'application/pdf';
       return {
         role,
         content: [
-          { type: 'image', source: { type: 'base64', media_type: imageData.mimeType, data: imageData.base64 } },
+          isPdf
+            ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: imageData.base64 } }
+            : { type: 'image', source: { type: 'base64', media_type: imageData.mimeType, data: imageData.base64 } },
           { type: 'text', text: m.content }
         ]
       };
