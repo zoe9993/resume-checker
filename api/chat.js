@@ -206,9 +206,21 @@ export default async function handler(req) {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
     });
 
-    // プロジェクトチャットは分割出力で会話が長くなるため多めに保持
-    const messageLimit = project_id ? 20 : 10;
-    const trimmedMessages = Array.isArray(messages) ? messages.slice(-messageLimit) : [];
+    // プロジェクトチャット：最初のメッセージ（原文PDF等）を常に保持 + 直近の会話
+    // 一般チャット：直近10件のみ
+    let trimmedMessages;
+    if (project_id && Array.isArray(messages) && messages.length > 12) {
+      const first = messages[0];           // 原文（PDF・履歴書テキスト）
+      const recent = messages.slice(-12);  // 直近12件の会話
+      // 最初のメッセージが直近に含まれていなければ先頭に追加
+      if (recent[0] !== first) {
+        trimmedMessages = [first, ...recent];
+      } else {
+        trimmedMessages = recent;
+      }
+    } else {
+      trimmedMessages = Array.isArray(messages) ? messages.slice(-12) : [];
+    }
 
     // メッセージサイズ制限（1件あたり最大50,000文字）
     for (const m of trimmedMessages) {
