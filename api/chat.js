@@ -206,8 +206,9 @@ export default async function handler(req) {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
     });
 
-    // 直近10件だけ使用（トークン節約）
-    const trimmedMessages = Array.isArray(messages) ? messages.slice(-10) : [];
+    // プロジェクトチャットは分割出力で会話が長くなるため多めに保持
+    const messageLimit = project_id ? 20 : 10;
+    const trimmedMessages = Array.isArray(messages) ? messages.slice(-messageLimit) : [];
 
     // メッセージサイズ制限（1件あたり最大50,000文字）
     for (const m of trimmedMessages) {
