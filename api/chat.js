@@ -68,7 +68,7 @@ async function callClaude(finalSystem, messages, imageData, isResume) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: isResume ? 6000 : 4000,
+      max_tokens: isResume ? 8000 : 4000,
       temperature: isResume ? 0.3 : 0.5,
       stream: true,
       system: [{ type: 'text', text: finalSystem, cache_control: { type: 'ephemeral' } }],
@@ -116,7 +116,7 @@ async function callOpenAI(finalSystem, messages, imageData, isResume) {
     },
     body: JSON.stringify({
       model: 'gpt-4o',
-      max_tokens: isResume ? 6000 : 4000,
+      max_tokens: isResume ? 8000 : 4000,
       temperature: isResume ? 0.3 : 0.5,
       stream: true,
       messages: openaiMessages
@@ -206,13 +206,18 @@ export default async function handler(req) {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
     });
 
-    // 最初の2件（PDFアップロード＋AI分析）を常に保持 + 直近10件
+    // 簡歴プロジェクト（project_id あり）→ 最初の2件＋直近8件（4往復）
+    // 一般チャット（project_id なし）→ 直近4件（2往復）
     const allMessages = Array.isArray(messages) ? messages : [];
     let trimmedMessages;
-    if (allMessages.length <= 12) {
-      trimmedMessages = allMessages;
+    if (project_id) {
+      if (allMessages.length <= 10) {
+        trimmedMessages = allMessages;
+      } else {
+        trimmedMessages = [...allMessages.slice(0, 2), ...allMessages.slice(-8)];
+      }
     } else {
-      trimmedMessages = [...allMessages.slice(0, 2), ...allMessages.slice(-10)];
+      trimmedMessages = allMessages.slice(-4);
     }
 
     // メッセージサイズ制限（1件あたり最大50,000文字）
