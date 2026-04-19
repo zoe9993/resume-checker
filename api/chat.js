@@ -410,6 +410,7 @@ CONFIDENCE & UNCERTAINTY RULES (ABSOLUTE):
 - 原文に記載のない情報は一切追加しない。推測・創作・補完は絶対禁止
 - 出力する全ての文・箇条書きは、原文の中に「元ネタ」が特定できなければならない。原文に根拠がない文は出力禁止
 - 「ブラッシュアップ」＝原文の表現を整えること。原文にない新しい項目・概念・スキル・経験を追加することではない
+- ただし、原文に記載されている情報を省略・簡略化してもいけない。原文の具体的なシステム名・ツール名・業務内容・数字は全て出力に含めること。「捏造しない」と「原文を削らない」の両方を守る
 - 原文の意味・範囲を変える言い換えは禁止。表現を「格上げ」してはいけない：
   例：「バイリンガル」→「トリリンガル」に変えない。「ベンダーコントロール」→「ステークホルダー対応」に変えない
   原文が「日中バイリンガル」なら出力も「日中バイリンガル」。言語数・スキル範囲・役割の格を上げる改変は捏造と同じ
@@ -536,7 +537,7 @@ CONFIDENCE & UNCERTAINTY RULES (ABSOLUTE):
     const BASE_SYSTEM = project_id ? CORE_SYSTEM + RESUME_RULES : CORE_SYSTEM;
 
     // プロジェクトチャット（履歴書処理）は低温度で安定・正確な出力を優先
-    const temperature = project_id ? 0.2 : 0.5;
+    const temperature = project_id ? 0.3 : 0.5;
 
     const finalSystem = systemPrompt
       ? `${BASE_SYSTEM}${memoriesText}\n\n---\n\n${systemPrompt}`
