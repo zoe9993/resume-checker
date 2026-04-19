@@ -40,7 +40,7 @@ function toPlainStream(res, extractText) {
 }
 
 // ── Claude Sonnet 4.6 (Anthropic) ──────────────────────────────────────
-async function callClaude(finalSystem, messages, imageData, temperature = 0.5, maxTokens = 4000) {
+async function callClaude(finalSystem, messages, imageData) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return errorResponse('ANTHROPIC_API_KEYが設定されていません');
 
@@ -68,8 +68,8 @@ async function callClaude(finalSystem, messages, imageData, temperature = 0.5, m
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: maxTokens,
-      temperature,
+      max_tokens: 4000,
+      temperature: 0.5,
       stream: true,
       system: [{ type: 'text', text: finalSystem, cache_control: { type: 'ephemeral' } }],
       messages: claudeMessages
@@ -87,7 +87,7 @@ async function callClaude(finalSystem, messages, imageData, temperature = 0.5, m
 }
 
 // ── GPT-4o (OpenAI) ─────────────────────────────────────────────────
-async function callOpenAI(finalSystem, messages, imageData, temperature = 0.5, maxTokens = 4000) {
+async function callOpenAI(finalSystem, messages, imageData) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return errorResponse('OPENAI_API_KEYが設定されていません');
 
@@ -116,8 +116,8 @@ async function callOpenAI(finalSystem, messages, imageData, temperature = 0.5, m
     },
     body: JSON.stringify({
       model: 'gpt-4o',
-      max_tokens: maxTokens,
-      temperature,
+      max_tokens: 4000,
+      temperature: 0.5,
       stream: true,
       messages: openaiMessages
     })
@@ -132,7 +132,7 @@ async function callOpenAI(finalSystem, messages, imageData, temperature = 0.5, m
 }
 
 // ── Gemini 2.5 Flash (Google) ─────────────────────────────────────────
-async function callGemini(finalSystem, messages, imageData, temperature = 0.5, maxTokens = 4000) {
+async function callGemini(finalSystem, messages, imageData) {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) return errorResponse('GOOGLE_API_KEYが設定されていません');
 
@@ -158,7 +158,7 @@ async function callGemini(finalSystem, messages, imageData, temperature = 0.5, m
       body: JSON.stringify({
         system_instruction: { parts: [{ text: finalSystem }] },
         contents,
-        generationConfig: { maxOutputTokens: maxTokens, temperature }
+        generationConfig: { maxOutputTokens: 4000, temperature: 0.5 }
       })
     }
   );
@@ -206,21 +206,8 @@ export default async function handler(req) {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
     });
 
-    // プロジェクトチャット：最初のメッセージ（原文PDF等）を常に保持 + 直近の会話
-    // 一般チャット：直近10件のみ
-    let trimmedMessages;
-    if (project_id && Array.isArray(messages) && messages.length > 12) {
-      const first = messages[0];           // 原文（PDF・履歴書テキスト）
-      const recent = messages.slice(-12);  // 直近12件の会話
-      // 最初のメッセージが直近に含まれていなければ先頭に追加
-      if (recent[0] !== first) {
-        trimmedMessages = [first, ...recent];
-      } else {
-        trimmedMessages = recent;
-      }
-    } else {
-      trimmedMessages = Array.isArray(messages) ? messages.slice(-12) : [];
-    }
+    // 直近10件だけ使用（トークン節約）
+    const trimmedMessages = Array.isArray(messages) ? messages.slice(-10) : [];
 
     // メッセージサイズ制限（1件あたり最大50,000文字）
     for (const m of trimmedMessages) {
@@ -420,14 +407,13 @@ CONFIDENCE & UNCERTAINTY RULES (ABSOLUTE):
 ---
 
 ### 【最重要ルール】
-ブラッシュアップ＝原文の情報を全て保持したまま、文体・構成・読みやすさを改善すること。
-原文にある情報を削るのも、原文にない情報を足すのも、どちらも禁止。
-
-- 原文の全ての具体情報（システム名・ツール名・業務内容・数字・規模・役割・担当フェーズ）を出力に含める。省略禁止
-- 原文に記載のない情報は追加しない。推測・創作・補完は禁止
-- 原文の意味を変える言い換え禁止（例：「バイリンガル」→「トリリンガル」、「メンバー」→「リーダー」）
-- 原文にない能力表現（「コミュニケーション能力」「リーダーシップ」等）をAIが追加しない。原文にあればOK
-- 不明・未確認の情報は【要確認事項】に記載。修正箇所は【修正ポイント】にまとめる
+- 原文に記載のない情報は一切追加しない。推測・創作・補完は絶対禁止
+- 不明・未確認の情報は末尾に【要確認事項】としてリストアップする
+- 正式なリーダー職でない場合、「リーダーとして」と書かない。事実ベースで表現する
+- 客先・ユーザーに失礼な表現を避ける（例：「顧客の理解度に合わせた説明」など自然な表現を使う）
+- 重複内容は先に指摘し、統合案を提示してから編集する
+- 修正した箇所は末尾に【修正ポイント】として簡潔にまとめる
+- 埋められない項目は空欄のままにし、候補者への確認を促す
 
 ### 【資格・免許の表記ルール】
 資格・免許の履歴書への書き方は以下の正式表記に従うこと：
@@ -444,11 +430,12 @@ CONFIDENCE & UNCERTAINTY RULES (ABSOLUTE):
 🚫 「合格」と「取得」を混同しない。試験に受かるものは「合格」、免許・資格証が発行されるものは「取得」
 🚫 原文に「合格」「取得」の記載がない場合も、上記ルールに従って正しい表記を使うこと
 
-### 【言語に関するルール】
-- 出力は原文と同じ言語で。原文が日本語なら出力も日本語
-- 技術名（ERP、Azure、Salesforce等）は固有名詞であり、候補者の語学力の根拠にしない
-- 言語スキルは原文の「言語」「語学」欄に明記されている場合のみ記載可
-- 原文に英語が書いてある部分はそのまま保持してよい
+### 【言語・英語に関する絶対ルール】
+🚫 原文が日本語で書かれている場合、出力も100%日本語にすること
+🚫 原文に英語のセクション・英語の文章が存在しない限り、英語を追加することは絶対禁止
+🚫 製品名・技術名（ERP、Azure、Salesforceなど）に英語が含まれていても、それは固有名詞であり「英語での記載がある」とは判断しない
+🚫 英語の補足説明・英訳・英語スキルのアピール文を自己判断で追加しない
+✅ 原文に英語が書いてある部分はそのまま保持してよい
 
 ### 【期間・日付に関するルール】
 - 在籍期間とプロジェクト期間は別物として扱う。プロジェクト期間が在籍期間と一致しない場合も、客先常駐・引き継ぎ・複数社にまたがるケース等があるため、矛盾と断定せず、必ず【要確認事項】に記載して候補者に確認を促すこと。独自に期間を修正・変更しないこと
@@ -536,17 +523,13 @@ CONFIDENCE & UNCERTAINTY RULES (ABSOLUTE):
     // プロジェクットチャット: CORE_SYSTEM + RESUME_RULES
     const BASE_SYSTEM = project_id ? CORE_SYSTEM + RESUME_RULES : CORE_SYSTEM;
 
-    // プロジェクトチャット：低温度で安定出力 + トークン増量で詳細出力
-    const temperature = 0.5;
-    const maxTokens = project_id ? 8000 : 4000;
-
     const finalSystem = systemPrompt
       ? `${BASE_SYSTEM}${memoriesText}\n\n---\n\n${systemPrompt}`
       : `${BASE_SYSTEM}${memoriesText}`;
 
-    if (model === 'gpt-4o')           return await callOpenAI(finalSystem, trimmedMessages, imageData, temperature, maxTokens);
-    if (model === 'gemini-2.5-flash') return await callGemini(finalSystem, trimmedMessages, imageData, temperature, maxTokens);
-    return await callClaude(finalSystem, trimmedMessages, imageData, temperature, maxTokens);
+    if (model === 'gpt-4o')           return await callOpenAI(finalSystem, trimmedMessages, imageData);
+    if (model === 'gemini-2.5-flash') return await callGemini(finalSystem, trimmedMessages, imageData);
+    return await callClaude(finalSystem, trimmedMessages, imageData);
 
   } catch(e) {
     return new Response(JSON.stringify({ error: e.message }), {
