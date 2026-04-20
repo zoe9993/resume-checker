@@ -1867,7 +1867,9 @@ async function loadSyncedConvsFromCloud() {
   try {
     const res = await apiFetch('/api/sync');
     if (!res.ok) {
-      console.warn('loadSyncedConvsFromCloud failed:', res.status);
+      const body = await res.json().catch(() => ({}));
+      console.warn('loadSyncedConvsFromCloud 401 debug:', JSON.stringify(body));
+      showToast(`⚠ 同期API ${res.status}: tokenLen=${body.debug?.tokenLen} expectedLen=${body.debug?.expectedLen}`);
       return;
     }
     const cloudList = await res.json();

@@ -15,7 +15,13 @@ function checkAuth(req) {
 
 export default async function handler(req) {
   if (!checkAuth(req)) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // デバッグ用：トークン長と環境変数の設定状況を返す（パスワード自体は返さない）
+    const token = req.headers.get('X-Auth-Token') || '';
+    const expected = process.env.SITE_PASSWORD || '';
+    return new Response(JSON.stringify({
+      error: 'Unauthorized',
+      debug: { tokenLen: token.length, expectedLen: expected.length, hasEnv: !!expected }
+    }), {
       status: 401, headers: { 'Content-Type': 'application/json' }
     });
   }
