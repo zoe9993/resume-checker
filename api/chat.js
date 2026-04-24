@@ -209,18 +209,18 @@ export default async function handler(req) {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
     });
 
-    // 簡歴プロジェクト（project_id あり）→ 最初の2件＋直近8件（4往復）
-    // 一般チャット（project_id なし）→ 直近4件（2往復）
+    // 簡歴プロジェクト（project_id あり）→ 最初の2件＋直近38件（20往復）
+    // 一般チャット（project_id なし）→ 直近40件（20往復）
     const allMessages = Array.isArray(messages) ? messages : [];
     let trimmedMessages;
     if (project_id) {
-      if (allMessages.length <= 10) {
+      if (allMessages.length <= 40) {
         trimmedMessages = allMessages;
       } else {
-        trimmedMessages = [...allMessages.slice(0, 2), ...allMessages.slice(-8)];
+        trimmedMessages = [...allMessages.slice(0, 2), ...allMessages.slice(-38)];
       }
     } else {
-      trimmedMessages = allMessages.slice(-4);
+      trimmedMessages = allMessages.slice(-40);
     }
 
     // メッセージサイズ制限（1件あたり最大50,000文字）
