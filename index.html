@@ -2024,6 +2024,24 @@ function showToast(msg) {
   setTimeout(() => t.remove(), 2500);
 }
 
+// Mobile keyboard: scroll chat input into view when virtual keyboard appears
+(function setupMobileKeyboardScroll() {
+  function scrollInputIntoView() {
+    const input = document.getElementById('chatInput');
+    if (input && document.activeElement === input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+  // visualViewport fires when the keyboard resizes the visible area (modern browsers)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scrollInputIntoView);
+  }
+  // Fallback: scroll after focus with a delay to let the keyboard finish animating
+  document.getElementById('chatInput')?.addEventListener('focus', function() {
+    setTimeout(scrollInputIntoView, 300);
+  });
+})();
+
 init();
 </script>
 </body>
