@@ -1990,10 +1990,11 @@ function stopSyncPoll() {
 async function toggleCloudSync(convId) {
   const synced = getSyncedConvIds();
   if (synced.has(convId)) {
-    // OFFにする
+    // OFFにする → ローカルとクラウド両方から削除
     synced.delete(convId);
     saveSyncedConvIds(synced);
     if (currentProjectId === convId) stopSyncPoll();
+    apiFetch(`/api/sync?conv_id=${encodeURIComponent(convId)}`, { method: 'DELETE' }).catch(() => {});
     showToast('☁️ クラウド同期をOFFにしました');
   } else {
     // ONにする → 現在のメッセージをプッシュ
