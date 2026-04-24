@@ -217,6 +217,7 @@ body {
   height: 100dvh;
   overflow: hidden;
   min-width: 0;
+  position: relative; /* needed so JS can set top when iOS scrolls on keyboard open */
 }
 
 /* ── TOPBAR ── */
@@ -2024,22 +2025,25 @@ function showToast(msg) {
   setTimeout(() => t.remove(), 2500);
 }
 
-// Mobile keyboard: scroll chat input into view when virtual keyboard appears
-(function setupMobileKeyboardScroll() {
-  function scrollInputIntoView() {
-    const input = document.getElementById('chatInput');
-    if (input && document.activeElement === input) {
-      input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+// Mobile keyboard: resize layout so input-area stays above the virtual keyboard.
+// scrollIntoView won't work here because .main has overflow:hidden.
+// Instead, shrink .main to the visual viewport height so the flex layout
+// naturally pushes input-area to the bottom of the visible (above-keyboard) area.
+(function setupMobileKeyboardResize() {
+  if (!window.visualViewport) return;
+  const main = document.querySelector('.main');
+  if (!main) return;
+
+  function onViewportChange() {
+    const vv = window.visualViewport;
+    // vv.height is the actual visible height (shrinks when keyboard appears)
+    // vv.offsetTop handles iOS scrolling the page when keyboard opens
+    main.style.height = vv.height + 'px';
+    main.style.top = vv.offsetTop + 'px';
   }
-  // visualViewport fires when the keyboard resizes the visible area (modern browsers)
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', scrollInputIntoView);
-  }
-  // Fallback: scroll after focus with a delay to let the keyboard finish animating
-  document.getElementById('chatInput')?.addEventListener('focus', function() {
-    setTimeout(scrollInputIntoView, 300);
-  });
+
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
 })();
 
 init();
