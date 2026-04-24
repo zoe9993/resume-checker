@@ -6,6 +6,7 @@
 //     position INTEGER DEFAULT 0,
 //     created_at TIMESTAMPTZ DEFAULT NOW()
 //   );
+//   ALTER TABLE folders DISABLE ROW LEVEL SECURITY;
 //
 //   ALTER TABLE projects ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES folders(id) ON DELETE SET NULL;
 
@@ -56,6 +57,11 @@ export default async function handler(req) {
         { method: 'GET', headers: sbHeaders }
       );
       const data = await res.json();
+      if (!res.ok) {
+        return new Response(JSON.stringify({ error: data }), {
+          status: res.status, headers: { 'Content-Type': 'application/json' }
+        });
+      }
       return new Response(JSON.stringify(Array.isArray(data) ? data : []), {
         status: 200, headers: { 'Content-Type': 'application/json' }
       });
@@ -69,6 +75,11 @@ export default async function handler(req) {
         body: JSON.stringify(body)
       });
       const data = await res.json();
+      if (!res.ok) {
+        return new Response(JSON.stringify({ error: data }), {
+          status: res.status, headers: { 'Content-Type': 'application/json' }
+        });
+      }
       return new Response(JSON.stringify(Array.isArray(data) ? data[0] : data), {
         status: 201, headers: { 'Content-Type': 'application/json' }
       });
@@ -76,11 +87,17 @@ export default async function handler(req) {
 
     if (req.method === 'PATCH' && id) {
       const body = await req.json();
-      await fetch(`${SUPABASE_URL}/rest/v1/folders?id=eq.${id}`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/folders?id=eq.${id}`, {
         method: 'PATCH',
         headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
         body: JSON.stringify(body)
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return new Response(JSON.stringify({ error: data }), {
+          status: res.status, headers: { 'Content-Type': 'application/json' }
+        });
+      }
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { 'Content-Type': 'application/json' }
       });

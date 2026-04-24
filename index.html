@@ -1172,8 +1172,14 @@ async function deleteProjectAPI(id) {
 async function loadFolders() {
   try {
     const res = await apiFetch('/api/folders');
-    folders = res.ok ? await res.json() : [];
-  } catch(e) { folders = []; }
+    if (res.ok) {
+      folders = await res.json();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      console.error('loadFolders error:', res.status, err);
+      folders = [];
+    }
+  } catch(e) { console.error('loadFolders exception:', e); folders = []; }
 }
 
 async function initDefaultFolders() {
@@ -1231,7 +1237,13 @@ async function createFolder() {
   const name = prompt('フォルダ名を入力してください');
   if (!name?.trim()) return;
   const f = await apiFolderCreate(name.trim(), folders.length);
-  if (f?.id) { folders.push(f); renderSidebar(); }
+  if (f?.id) {
+    folders.push(f);
+    renderSidebar();
+    showToast(`📁 「${name.trim()}」を作成しました`);
+  } else {
+    showToast('⚠ フォルダの作成に失敗しました。Supabase の SQL を確認してください。');
+  }
 }
 
 async function renameFolder(id) {
