@@ -15,19 +15,33 @@ function checkAuth(req) {
 
 // SSRF 防护：屏蔽内网/保留 IP 地址
 function isPrivateHost(hostname) {
-  // 屏蔽 localhost
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
-  if (hostname.endsWith('.local') || hostname.endsWith('.internal')) return true;
-  // 屏蔽私有 IP 段
-  const parts = hostname.split('.').map(Number);
-  if (parts.length === 4 && parts.every(n => !isNaN(n))) {
-    if (parts[0] === 10) return true;                                         // 10.0.0.0/8
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+
+  // IPv4 localhost / loopback
+  if (h === 'localhost' || h === '127.0.0.1') return true;
+  // IPv6 loopback and common aliases
+  if (h === '::1' || h === '0:0:0:0:0:0:0:1') return true;
+  // Special hostnames
+  if (h.endsWith('.local') || h.endsWith('.internal')) return true;
+
+  // IPv4 private ranges
+  const parts = h.split('.').map(Number);
+  if (parts.length === 4 && parts.every(n => !isNaN(n) && n >= 0 && n <= 255)) {
+    if (parts[0] === 10) return true;                                          // 10.0.0.0/8
     if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;    // 172.16.0.0/12
     if (parts[0] === 192 && parts[1] === 168) return true;                    // 192.168.0.0/16
     if (parts[0] === 169 && parts[1] === 254) return true;                    // 169.254.0.0/16 (link-local / cloud metadata)
-    if (parts[0] === 0) return true;                                          // 0.0.0.0/8
-    if (parts[0] === 127) return true;                                        // 127.0.0.0/8
+    if (parts[0] === 0) return true;                                           // 0.0.0.0/8
+    if (parts[0] === 127) return true;                                         // 127.0.0.0/8
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;   // 100.64.0.0/10 (CGNAT)
   }
+
+  // IPv6 private ranges
+  if (h.startsWith('fc') || h.startsWith('fd')) return true;  // fc00::/7 unique local
+  if (h.startsWith('fe8') || h.startsWith('fe9') ||
+      h.startsWith('fea') || h.startsWith('feb')) return true; // fe80::/10 link-local
+  if (h.startsWith('::ffff:')) return true;                    // IPv4-mapped IPv6
+
   return false;
 }
 
